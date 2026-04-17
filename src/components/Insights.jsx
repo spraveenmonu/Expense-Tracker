@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiAlertTriangle, FiCheckCircle, FiInfo, FiZap, FiShield, FiTrendingUp, FiTarget, FiHeart } from 'react-icons/fi';
-import { useExpense } from '../context/ExpenseContext';
+import { useExpense } from '../context/useExpense';
 import { formatCurrency } from '../utils/helpers';
 
 const SMART_TIPS = [
@@ -63,15 +63,22 @@ export default function Insights() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="page-header">
+      <motion.div 
+        className="page-header"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.4 }}
+      >
         <h2>Smart Insights</h2>
         <p>AI-powered recommendations to optimize your spending</p>
-      </div>
+      </motion.div>
 
       {/* Financial Health Score */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
         transition={{ delay: 0.1 }}
         style={{
           background: 'var(--gradient-hero)',
@@ -139,8 +146,9 @@ export default function Insights() {
       {/* Active Alerts */}
       {allInsights.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
           transition={{ delay: 0.2 }}
           style={{ marginBottom: 28 }}
         >
@@ -175,8 +183,9 @@ export default function Insights() {
 
       {/* Smart Money Tips */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
         transition={{ delay: 0.3 }}
       >
         <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -1,15 +1,15 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  FiGrid, FiList, FiZap, FiPlus, FiMenu, FiX, FiDollarSign, FiTarget
+  FiGrid, FiList, FiZap, FiPlus, FiMenu, FiX, FiDollarSign, FiSun, FiMoon
 } from 'react-icons/fi';
-import { ExpenseProvider, useExpense } from './context/ExpenseContext';
+import { ExpenseProvider } from './context/ExpenseContext';
 import Dashboard from './components/Dashboard';
 import TransactionList from './components/TransactionList';
 import Insights from './components/Insights';
 import AddTransaction from './components/AddTransaction';
 import Toast from './components/Toast';
-import { formatCurrency } from './utils/helpers';
+
 import './App.css';
 
 function AppContent() {
@@ -17,8 +17,13 @@ function AppContent() {
   const [showAddTx, setShowAddTx] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [theme, setTheme] = useState('brutal');
 
-  const { dispatch, region } = useExpense();
+
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const addToast = useCallback((toast) => {
     const id = Date.now();
@@ -83,6 +88,28 @@ function AppContent() {
               {item.label}
             </button>
           ))}
+        </div>
+
+        <div className="sidebar-footer" style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid var(--border-subtle)' }}>
+          <button 
+            className="sidebar-link" 
+            onClick={() => setTheme(theme === 'brutal' ? 'glass' : 'brutal')}
+            style={{ justifyContent: 'center', padding: '12px', fontSize: '1.25rem', width: '48px', height: '48px', margin: '0 auto', display: 'flex', alignItems: 'center', overflow: 'hidden' }}
+            title={theme === 'brutal' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={theme}
+                initial={{ y: -20, opacity: 0, rotate: -90 }}
+                animate={{ y: 0, opacity: 1, rotate: 0 }}
+                exit={{ y: 20, opacity: 0, rotate: 90 }}
+                transition={{ duration: 0.2 }}
+                style={{ display: 'flex' }}
+              >
+                {theme === 'brutal' ? <FiMoon /> : <FiSun />}
+              </motion.div>
+            </AnimatePresence>
+          </button>
         </div>
       </nav>
 

@@ -193,53 +193,70 @@ export function analyzeSpending(transactions) {
 }
 
 // ── Chart Data Helpers ────────────────────────────────────────────────
-export function getLast7DaysData(transactions) {
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const dayStr = date.toLocaleDateString(undefined, { weekday: 'short' });
-    const dateStr = date.toISOString().split('T')[0];
-
-    const dayExpenses = transactions
-      .filter(t => t.date.startsWith(dateStr) && t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const dayIncome = transactions
-      .filter(t => t.date.startsWith(dateStr) && t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    days.push({ name: dayStr, expenses: dayExpenses, income: dayIncome });
+export function getChartData(transactions, mode) {
+  const data = [];
+  const now = new Date();
+  
+  if (mode === 'week') {
+    // Last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dayStr = d.toLocaleDateString(undefined, { weekday: 'short' });
+      const dateStr = d.toISOString().split('T')[0];
+      
+      const dayData = transactions.filter(t => t.date.startsWith(dateStr));
+      const expenses = dayData.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const income = dayData.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      
+      data.push({ name: dayStr, expenses, income });
+    }
+  } else if (mode === 'month') {
+    // Last 30 days (Daily format for granularity)
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dayStr = d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+      const dateStr = d.toISOString().split('T')[0];
+      
+      const dayData = transactions.filter(t => t.date.startsWith(dateStr));
+      const expenses = dayData.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const income = dayData.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      
+      data.push({ name: dayStr, expenses, income });
+    }
+  } else if (mode === 'year') {
+    // Last 12 months
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStr = d.toLocaleDateString(undefined, { month: 'short' });
+      const month = d.getMonth();
+      const year = d.getFullYear();
+      
+      const monthData = transactions.filter(t => {
+        const td = new Date(t.date);
+        return td.getMonth() === month && td.getFullYear() === year;
+      });
+      const expenses = monthData.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const income = monthData.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      
+      data.push({ name: monthStr, expenses, income });
+    }
+  } else if (mode === 'all') {
+    // Group by Year for all-time
+    const years = [...new Set(transactions.map(t => new Date(t.date).getFullYear()))].sort();
+    if(years.length === 0) years.push(now.getFullYear());
+    
+    years.forEach(year => {
+      const yearData = transactions.filter(t => new Date(t.date).getFullYear() === year);
+      const expenses = yearData.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const income = yearData.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      
+      data.push({ name: year.toString(), expenses, income });
+    });
   }
-  return days;
-}
-
-export function getMonthlyData(transactions) {
-  const months = [];
-  for (let i = 5; i >= 0; i--) {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    const monthStr = date.toLocaleDateString(undefined, { month: 'short' });
-    const month = date.getMonth();
-    const year = date.getFullYear();
-
-    const monthExpenses = transactions
-      .filter(t => {
-        const d = new Date(t.date);
-        return d.getMonth() === month && d.getFullYear() === year && t.type === 'expense';
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const monthIncome = transactions
-      .filter(t => {
-        const d = new Date(t.date);
-        return d.getMonth() === month && d.getFullYear() === year && t.type === 'income';
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    months.push({ name: monthStr, expenses: monthExpenses, income: monthIncome });
-  }
-  return months;
+  
+  return data;
 }
 
 export function getExpensePeriods(transactions) {

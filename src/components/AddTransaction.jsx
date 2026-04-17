@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiArrowDown, FiArrowUp, FiTerminal, FiAlertOctagon, FiShield, FiTarget } from 'react-icons/fi';
-import { useExpense } from '../context/ExpenseContext';
+import { useExpense } from '../context/useExpense';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, SAVINGS_CATEGORIES } from '../utils/categories';
 import { formatCurrency } from '../utils/helpers';
 
@@ -10,6 +10,7 @@ export default function AddTransaction({ onClose, onToast }) {
   const [type, setType] = useState('expense');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
+  const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [limitWarning, setLimitWarning] = useState(null);
 
@@ -28,7 +29,9 @@ export default function AddTransaction({ onClose, onToast }) {
 
     if (type === 'expense') {
       let limitMsg = null;
-      if (limits.daily > 0 && periods.daily + numAmount > limits.daily) {
+      if (balance < numAmount) {
+        limitMsg = `Insufficient funds! This expense is greater than your total balance of ${formatCurrency(balance, region)}.`;
+      } else if (limits.daily > 0 && periods.daily + numAmount > limits.daily) {
         limitMsg = `This expense exceeds your daily limit of ${formatCurrency(limits.daily, region)}.`;
       } else if (limits.weekly > 0 && periods.weekly + numAmount > limits.weekly) {
         limitMsg = `This expense exceeds your weekly limit of ${formatCurrency(limits.weekly, region)}.`;
@@ -48,7 +51,10 @@ export default function AddTransaction({ onClose, onToast }) {
   };
 
   const finalizeSubmit = (numAmount) => {
-    const label = selectedCat?.label ?? category;
+    let label = selectedCat?.label ?? category;
+    if ((category === 'other_expense' || category === 'other_income') && description.trim()) {
+      label = description.trim();
+    }
 
     dispatch({
       type: 'ADD_TRANSACTION',
@@ -70,7 +76,10 @@ export default function AddTransaction({ onClose, onToast }) {
     onClose();
   };
 
-  const isValid = amount && category && parseFloat(amount) > 0;
+  const isOther = category === 'other_expense' || category === 'other_income';
+  const isDescriptionValid = !isOther || (isOther && description.trim() !== '');
+  const isValid = amount && category && parseFloat(amount) > 0 && isDescriptionValid;
+
 
   return (
     <AnimatePresence>
@@ -132,34 +141,34 @@ export default function AddTransaction({ onClose, onToast }) {
               >
                 {/* Type Toggle */}
             <div className="form-type-toggle">
-              <button
-                type="button"
-                className={`type-btn ${type === 'expense' ? 'active-expense' : ''}`}
-                onClick={() => { setType('expense'); setCategory(''); }}
-              >
-                <FiArrowDown /> Expense
-              </button>
-              <button
-                type="button"
-                className={`type-btn ${type === 'income' ? 'active-income' : ''}`}
-                onClick={() => { setType('income'); setCategory(''); }}
-              >
-                <FiArrowUp /> Income
-              </button>
-              <button
-                type="button"
-                className={`type-btn ${type === 'savings' ? 'active-savings' : ''}`}
-                onClick={() => { setType('savings'); setCategory(''); }}
-              >
-                <FiShield /> Savings
-              </button>
-              <button
-                type="button"
-                className={`type-btn ${type === 'goals' ? 'active-goals' : ''}`}
-                onClick={() => { setType('goals'); setCategory(''); }}
-              >
-                <FiTarget /> Goals
-              </button>
+                <button
+                  type="button"
+                  className={`type-btn ${type === 'expense' ? 'active-expense' : ''}`}
+                  onClick={() => { setType('expense'); setCategory(''); setDescription(''); }}
+                >
+                  <FiArrowDown /> Expense
+                </button>
+                <button
+                  type="button"
+                  className={`type-btn ${type === 'income' ? 'active-income' : ''}`}
+                  onClick={() => { setType('income'); setCategory(''); setDescription(''); }}
+                >
+                  <FiArrowUp /> Income
+                </button>
+                <button
+                  type="button"
+                  className={`type-btn ${type === 'savings' ? 'active-savings' : ''}`}
+                  onClick={() => { setType('savings'); setCategory(''); setDescription(''); }}
+                >
+                  <FiShield /> Savings
+                </button>
+                <button
+                  type="button"
+                  className={`type-btn ${type === 'goals' ? 'active-goals' : ''}`}
+                  onClick={() => { setType('goals'); setCategory(''); setDescription(''); }}
+                >
+                  <FiTarget /> Goals
+                </button>
             </div>
 
             {type === 'goals' ? (
@@ -176,7 +185,12 @@ export default function AddTransaction({ onClose, onToast }) {
                     className="form-input"
                     placeholder="e.g. 5000"
                     value={savingsGoal || ''}
-                    onChange={e => dispatch({ type: 'SET_SAVINGS_GOAL', payload: parseFloat(e.target.value) || 0 })}
+                    onChange={e => {
+                      const val = parseFloat(e.target.value);
+                      if (val >= 0 || e.target.value === '') {
+                        dispatch({ type: 'SET_SAVINGS_GOAL', payload: val || 0 });
+                      }
+                    }}
                     min="0"
                   />
                 </div>
@@ -187,7 +201,12 @@ export default function AddTransaction({ onClose, onToast }) {
                     className="form-input"
                     placeholder="e.g. 50"
                     value={limits.daily || ''}
-                    onChange={e => dispatch({ type: 'SET_LIMITS', payload: { daily: parseFloat(e.target.value) || 0 } })}
+                    onChange={e => {
+                      const val = parseFloat(e.target.value);
+                      if (val >= 0 || e.target.value === '') {
+                        dispatch({ type: 'SET_LIMITS', payload: { daily: val || 0 } });
+                      }
+                    }}
                     min="0"
                   />
                 </div>
@@ -198,7 +217,12 @@ export default function AddTransaction({ onClose, onToast }) {
                     className="form-input"
                     placeholder="e.g. 350"
                     value={limits.weekly || ''}
-                    onChange={e => dispatch({ type: 'SET_LIMITS', payload: { weekly: parseFloat(e.target.value) || 0 } })}
+                    onChange={e => {
+                      const val = parseFloat(e.target.value);
+                      if (val >= 0 || e.target.value === '') {
+                        dispatch({ type: 'SET_LIMITS', payload: { weekly: val || 0 } });
+                      }
+                    }}
                     min="0"
                   />
                 </div>
@@ -209,7 +233,12 @@ export default function AddTransaction({ onClose, onToast }) {
                     className="form-input"
                     placeholder="e.g. 1500"
                     value={limits.monthly || ''}
-                    onChange={e => dispatch({ type: 'SET_LIMITS', payload: { monthly: parseFloat(e.target.value) || 0 } })}
+                    onChange={e => {
+                      const val = parseFloat(e.target.value);
+                      if (val >= 0 || e.target.value === '') {
+                        dispatch({ type: 'SET_LIMITS', payload: { monthly: val || 0 } });
+                      }
+                    }}
                     min="0"
                   />
                 </div>
@@ -236,7 +265,12 @@ export default function AddTransaction({ onClose, onToast }) {
                 className="form-input"
                 placeholder="0.00"
                 value={amount}
-                onChange={e => setAmount(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === '' || parseFloat(val) >= 0) {
+                    setAmount(val);
+                  }
+                }}
                 min="0"
                 step="0.01"
                 autoFocus
@@ -277,6 +311,27 @@ export default function AddTransaction({ onClose, onToast }) {
                 })}
               </div>
             </div>
+
+            {/* Description (Only for Other) */}
+            <AnimatePresence>
+              {(category === 'other_expense' || category === 'other_income') && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                  animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0, overflow: 'hidden' }}
+                  className="form-group"
+                >
+                  <label>Description (Required)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="What was this for?"
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Submit */}
             <motion.button

@@ -1,15 +1,78 @@
 /* ─── SpendWise Design System ──────────────────────────────────────────── */
-:root {
-  /* Colors */
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #12121a;
-  --bg-card: rgba(255, 255, 255, 0.03);
-  --bg-card-hover: rgba(255, 255, 255, 0.06);
-  --bg-glass: rgba(255, 255, 255, 0.05);
-  --bg-input: rgba(255, 255, 255, 0.06);
+:root, :root[data-theme="brutal"] {
+  /* Colors (Neo-Brutalism Default) */
+  --bg-primary: #fffbeb;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f0f0f0;
+  --bg-glass: transparent;
+  --bg-input: #ffffff;
 
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-light: rgba(255, 255, 255, 0.1);
+  --border-subtle: #000000;
+  --border-light: #000000;
+  --border-active: #000000;
+
+  --text-primary: #000000;
+  --text-secondary: #000000;
+  --text-muted: #333333;
+  --text-dim: #555555;
+
+  --accent-primary: #FF3366;
+  --accent-primary-glow: transparent;
+  --accent-secondary: #00E5FF;
+  --accent-green: #00FF9D;
+  --accent-green-dim: #CCFFEB;
+  --accent-red: #FF3366;
+  --accent-red-dim: #FFCCD6;
+  --accent-orange: #FF9900;
+  --accent-orange-dim: #FFEADA;
+  --accent-blue: #00E5FF;
+  --accent-blue-dim: #CCFAFF;
+
+  /* Gradients (Removed for solid colors) */
+  --gradient-purple: #FF3366;
+  --gradient-green: #00FF9D;
+  --gradient-red: #FF3366;
+  --gradient-blue: #00E5FF;
+  --gradient-hero: #FF9900;
+  --gradient-mesh: none;
+
+  /* Typography */
+  --font-primary: 'Space Grotesk', 'Inter', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+
+  /* Spacing (Sharp edges) */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-full: 0px;
+
+  /* Shadows (Hard drop) */
+  --shadow-card: 4px 4px 0px 0px #000000;
+  --shadow-glow-purple: 4px 4px 0px 0px #000000;
+  --shadow-glow-green: 4px 4px 0px 0px #000000;
+
+  /* Transitions */
+  --ease-spring: ease-out;
+  --ease-smooth: ease-out;
+
+  /* Layout Specific */
+  --card-backdrop: none;
+  --card-border-width: 2px;
+}
+
+:root[data-theme="glass"] {
+  /* Colors (Glassmorphism) */
+  --bg-primary: #0f111a;
+  --bg-secondary: rgba(18, 18, 26, 0.4);
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-card-hover: rgba(255, 255, 255, 0.08);
+  --bg-glass: rgba(255, 255, 255, 0.1);
+  --bg-input: rgba(0, 0, 0, 0.2);
+
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-light: rgba(255, 255, 255, 0.2);
   --border-active: rgba(139, 92, 246, 0.5);
 
   --text-primary: #f1f5f9;
@@ -35,13 +98,14 @@
   --gradient-red: linear-gradient(135deg, #f87171, #ef4444);
   --gradient-blue: linear-gradient(135deg, #60a5fa, #3b82f6);
   --gradient-hero: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.1));
-  --gradient-mesh: radial-gradient(ellipse at 20% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-                   radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
-                   radial-gradient(ellipse at 50% 100%, rgba(244, 114, 182, 0.05) 0%, transparent 50%);
+  --gradient-mesh: radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.25), transparent 25%),
+                   radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.25), transparent 25%),
+                   radial-gradient(circle at 50% 80%, rgba(244, 114, 182, 0.2), transparent 25%),
+                   radial-gradient(circle at 80% 90%, rgba(74, 222, 128, 0.2), transparent 25%);
 
   /* Typography */
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: 'Space Grotesk', 'Inter', sans-serif;
+  --font-display: 'Inter', sans-serif;
 
   /* Spacing */
   --radius-sm: 8px;
@@ -58,6 +122,10 @@
   /* Transitions */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Layout Specific */
+  --card-backdrop: blur(24px);
+  --card-border-width: 1px;
 }
 
 /* ─── Reset & Base ─────────────────────────────────────────────────────── */
@@ -81,6 +149,7 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   line-height: 1.6;
+  transition: background 0.4s var(--ease-smooth), color 0.4s var(--ease-smooth);
 }
 
 #root {
@@ -95,11 +164,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(128, 128, 128, 0.3);
   border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(128, 128, 128, 0.5);
 }
 
 /* ─── Selection ────────────────────────────────────────────────────────── */

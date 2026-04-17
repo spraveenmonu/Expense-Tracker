@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiSearch, FiTrash2, FiInbox } from 'react-icons/fi';
-import { useExpense } from '../context/ExpenseContext';
+import { useExpense } from '../context/useExpense';
 import { formatCurrency, formatDate, formatFullDate } from '../utils/helpers';
 import CATEGORIES from '../utils/categories';
 
@@ -39,10 +39,16 @@ export default function TransactionList() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="page-header">
+      <motion.div 
+        className="page-header" 
+        initial={{ opacity: 0, y: 40 }} 
+        whileInView={{ opacity: 1, y: 0 }} 
+        transition={{ duration: 0.5 }} 
+        viewport={{ once: true }}
+      >
         <h2>Transactions</h2>
         <p>All your income and expenses in one place</p>
-      </div>
+      </motion.div>
 
       <div className="transactions-header">
         <div className="tx-filters">
@@ -80,7 +86,8 @@ export default function TransactionList() {
                   className="tx-item"
                   variants={txVariants}
                   initial="initial"
-                  animate="animate"
+                  whileInView="animate"
+                  viewport={{ once: true, margin: "-20px" }}
                   exit="exit"
                   layout
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}

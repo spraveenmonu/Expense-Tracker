@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, BarChart, Bar
 } from 'recharts';
 import { FiTrendingUp, FiTrendingDown, FiDollarSign, FiTarget, FiAlertTriangle, FiInfo, FiCheckCircle, FiZap } from 'react-icons/fi';
-import { useExpense } from '../context/ExpenseContext';
-import { formatCurrency, getLast7DaysData, getMonthlyData } from '../utils/helpers';
+import { useExpense } from '../context/useExpense';
+import { formatCurrency, getChartData } from '../utils/helpers';
 import CATEGORIES from '../utils/categories';
 
 const containerVariants = {
@@ -49,9 +49,10 @@ function CustomTooltip({ active, payload, label, region }) {
 export default function Dashboard() {
   const { transactions, totalIncome, totalExpenses, balance, savedAmount, savingsProgress, analysis, region } = useExpense();
   const [chartMode, setChartMode] = useState('week');
+  const [catChartMode, setCatChartMode] = useState('pie');
 
   const chartData = useMemo(() =>
-    chartMode === 'week' ? getLast7DaysData(transactions) : getMonthlyData(transactions),
+    getChartData(transactions, chartMode),
     [transactions, chartMode]
   );
 
@@ -178,54 +179,67 @@ export default function Dashboard() {
           <div className="chart-card-header">
             <h3>Spending Overview</h3>
             <div className="chart-toggle">
-              <button className={chartMode === 'week' ? 'active' : ''} onClick={() => setChartMode('week')}>7 Days</button>
-              <button className={chartMode === 'month' ? 'active' : ''} onClick={() => setChartMode('month')}>6 Months</button>
+              <button className={chartMode === 'week' ? 'active' : ''} onClick={() => setChartMode('week')}>1W</button>
+              <button className={chartMode === 'month' ? 'active' : ''} onClick={() => setChartMode('month')}>1M</button>
+              <button className={chartMode === 'year' ? 'active' : ''} onClick={() => setChartMode('year')}>1Y</button>
+              <button className={chartMode === 'all' ? 'active' : ''} onClick={() => setChartMode('all')}>All</button>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f87171" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#f87171" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#4ade80" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#4ade80" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} width={50} />
-              <Tooltip content={<CustomTooltip region={region} />} />
-              <Area type="monotone" dataKey="income" stroke="#4ade80" fill="url(#gradIncome)" strokeWidth={2} name="Income" />
-              <Area type="monotone" dataKey="expenses" stroke="#f87171" fill="url(#gradExpense)" strokeWidth={2} name="Expenses" />
-            </AreaChart>
+            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={(val) => val >= 1000 ? `${(val/1000).toFixed(1)}k` : val} />
+              <Tooltip content={<CustomTooltip region={region} />} cursor={{ stroke: 'var(--border-light)', strokeWidth: 1, strokeDasharray: '4 4' }} />
+              <Line type="monotone" dataKey="income" stroke="var(--accent-green)" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: 'var(--bg-card)' }} activeDot={{ r: 6 }} name="Income" />
+              <Line type="monotone" dataKey="expenses" stroke="var(--accent-red)" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: 'var(--bg-card)' }} activeDot={{ r: 6 }} name="Expenses" />
+            </LineChart>
           </ResponsiveContainer>
         </div>
 
         <div className="chart-card">
           <div className="chart-card-header">
             <h3>By Category</h3>
+            <div className="chart-toggle">
+              <button className={catChartMode === 'pie' ? 'active' : ''} onClick={() => setCatChartMode('pie')}>Pie</button>
+              <button className={catChartMode === 'bar' ? 'active' : ''} onClick={() => setCatChartMode('bar')}>Bar</button>
+            </div>
           </div>
           {categoryData.length > 0 ? (
             <>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-                <PieChart width={140} height={140}>
-                  <Pie
-                    data={categoryData}
-                    cx={65}
-                    cy={65}
-                    innerRadius={40}
-                    outerRadius={65}
-                    paddingAngle={3}
-                    dataKey="value"
-                    strokeWidth={0}
-                  >
-                    {categoryData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
+                {catChartMode === 'pie' ? (
+                  <PieChart width={140} height={140}>
+                    <Pie
+                      data={categoryData}
+                      cx={65}
+                      cy={65}
+                      innerRadius={40}
+                      outerRadius={65}
+                      paddingAngle={3}
+                      dataKey="value"
+                      strokeWidth={0}
+                    >
+                      {categoryData.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', borderRadius: '8px' }} itemStyle={{ color: 'var(--text-primary)' }} formatter={(value) => formatCurrency(value, region)} />
+                  </PieChart>
+                ) : (
+                  <ResponsiveContainer width="100%" height={140}>
+                    <BarChart data={categoryData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} layout="vertical">
+                      <XAxis type="number" hide />
+                      <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} width={80} />
+                      <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', borderRadius: '8px' }} itemStyle={{ color: 'var(--text-primary)' }} formatter={(value) => formatCurrency(value, region)} />
+                      <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={12}>
+                        {categoryData.map((entry, i) => (
+                          <Cell key={`cell-${i}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </div>
               <div className="category-list">
                 {categoryData.map((cat, i) => (

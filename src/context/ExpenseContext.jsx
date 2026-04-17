@@ -1,42 +1,73 @@
-import { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
+import { useReducer, useEffect, useMemo, useState } from 'react';
 import { detectUserRegion, generateId, analyzeSpending, getExpensePeriods } from '../utils/helpers';
+import { openDB } from 'idb';
 
-const ExpenseContext = createContext();
-const STORAGE_KEY = 'spendwise_data';
+import { ExpenseContext } from './ExpenseContextCore';
+const DB_NAME = 'SpendWiseDB';
+const STORE_NAME = 'appData';
 
-// ── Load from localStorage ────────────────────────────────────────────
-function loadData() {
+async function initDB() {
+  const db = await openDB(DB_NAME, 1, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    },
+  });
+  return db;
+}
+
+// ── Load from IndexedDB (with LocalStorage fallback for migration) ──
+async function loadData() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const data = JSON.parse(raw);
+    const db = await initDB();
+    const data = await db.get(STORE_NAME, 'state');
+    
+    if (data) {
       return {
         transactions: data.transactions || [],
         limits: data.limits || { daily: 0, weekly: 0, monthly: 0 },
         savingsGoal: data.savingsGoal || 0,
       };
+    } else {
+      // MIGRATION: Check localStorage and migrate directly
+      const raw = localStorage.getItem('spendwise_data');
+      if (raw) {
+        const legacyData = JSON.parse(raw);
+        const migratedState = {
+          transactions: legacyData.transactions || [],
+          limits: legacyData.limits || { daily: 0, weekly: 0, monthly: 0 },
+          savingsGoal: legacyData.savingsGoal || 0,
+        };
+        await db.put(STORE_NAME, migratedState, 'state');
+        localStorage.removeItem('spendwise_data');
+        return migratedState;
+      }
     }
   } catch (e) {
-    console.error('Failed to load data:', e);
+    console.error('Failed to load from IndexedDB:', e);
   }
   return { transactions: [], limits: { daily: 0, weekly: 0, monthly: 0 }, savingsGoal: 0 };
 }
 
-function saveData(state) {
+async function saveData(state) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    const db = await initDB();
+    await db.put(STORE_NAME, {
       transactions: state.transactions,
       limits: state.limits,
       savingsGoal: state.savingsGoal,
-    }));
+    }, 'state');
   } catch (e) {
-    console.error('Failed to save data:', e);
+    console.error('Failed to save to IndexedDB:', e);
   }
 }
 
 // ── Reducer ───────────────────────────────────────────────────────────
 function reducer(state, action) {
   switch (action.type) {
+    case 'HYDRATE':
+      return action.payload;
     case 'ADD_TRANSACTION': {
       const newTx = {
         id: generateId(),
@@ -66,14 +97,26 @@ function reducer(state, action) {
 // ── Provider ──────────────────────────────────────────────────────────
 export function ExpenseProvider({ children }) {
   const region = useMemo(() => detectUserRegion(), []);
-  const initial = useMemo(() => loadData(), []);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const [state, dispatch] = useReducer(reducer, initial);
+  const [state, dispatch] = useReducer(reducer, { transactions: [], limits: { daily: 0, weekly: 0, monthly: 0 }, savingsGoal: 0 });
 
-  // Persist on every state change
+  // Initial Data Fetch
   useEffect(() => {
-    saveData(state);
-  }, [state]);
+    loadData().then(initialState => {
+      dispatch({ type: 'HYDRATE', payload: initialState });
+      setIsLoaded(true);
+    });
+  }, []);
+
+  // Persist on every state change, but ONLY after hydration
+  useEffect(() => {
+    if (isLoaded) {
+      saveData(state);
+    }
+  }, [state, isLoaded]);
+
+
 
   // Computed values
   const analysis = useMemo(() => analyzeSpending(state.transactions), [state.transactions]);
@@ -119,6 +162,10 @@ export function ExpenseProvider({ children }) {
     dispatch,
   };
 
+  if (!isLoaded) {
+    return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Loading Database...</div>;
+  }
+
   return (
     <ExpenseContext.Provider value={value}>
       {children}
@@ -126,8 +173,4 @@ export function ExpenseProvider({ children }) {
   );
 }
 
-export function useExpense() {
-  const ctx = useContext(ExpenseContext);
-  if (!ctx) throw new Error('useExpense must be used within ExpenseProvider');
-  return ctx;
-}
+
